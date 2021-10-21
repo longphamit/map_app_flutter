@@ -35,10 +35,16 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  TextEditingController _destinationLocationTextController =
+      TextEditingController();
   String country = "123";
   late Position _currentPosition, _destinationPosition;
-  double latitude = 20;
-  double long_latitude = -50;
+  double latitude = 21.0277644;
+  double long_latitude = 105.8341598;
+
+  double des_latitude = 21.0277644;
+  double des_long_latitude = 105.8341598;
+
   final MapTileLayerController _layerController = MapTileLayerController();
   late MapZoomPanBehavior _zoomPanBehavior;
   @override
@@ -51,6 +57,31 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _layerController.dispose();
     super.dispose();
+  }
+
+  searchDestinationPosition() async {
+    try {
+      if (_layerController.markersCount == 2) {
+        _layerController.removeMarkerAt(1);
+      }
+      _layerController.insertMarker(1);
+      List places =
+          await locationFromAddress(_destinationLocationTextController.text);
+      _destinationPosition = Position(
+          longitude: places[0].longitude, latitude: places[0].latitude);
+      _layerController.updateMarkers([1]);
+      print(_destinationPosition);
+      print("set State");
+      setState(() {
+        des_latitude = _destinationPosition.latitude;
+        des_long_latitude = _destinationPosition.longitude;
+      });
+      _layerController.updateMarkers([1]);
+    } catch (e) {
+      print("Khong tim thay");
+    }
+
+    //1 mile = 0.000621371 * meters
   }
 
   getCurrentPosition() async {
@@ -73,7 +104,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Padding(
+          child: Container(
+            color: Colors.blue.shade200,
             padding: const EdgeInsets.all(8.0),
             child: Column(
               children: [
@@ -89,53 +121,75 @@ class _MyHomePageState extends State<MyHomePage> {
                         initialMarkersCount: 0,
                         zoomPanBehavior: _zoomPanBehavior,
                         markerBuilder: (BuildContext context, int index) {
-                          return MapMarker(
-                            latitude: latitude,
-                            longitude: long_latitude,
-                            iconColor: Colors.white,
-                            iconStrokeColor: Colors.black,
-                            iconStrokeWidth: 2,
-                          );
+                          if (index == 1) {
+                            return MapMarker(
+                              latitude: des_latitude,
+                              longitude: des_long_latitude,
+                              iconColor: Colors.white,
+                              iconStrokeColor: Colors.black,
+                              iconStrokeWidth: 2,
+                              child: Icon(Icons.location_on),
+                            );
+                          } else {
+                            return MapMarker(
+                              latitude: latitude,
+                              longitude: long_latitude,
+                              iconColor: Colors.white,
+                              iconStrokeColor: Colors.black,
+                              iconStrokeWidth: 2,
+                              child: Icon(Icons.home),
+                            );
+                          }
                         },
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  child: TextField(
-                    decoration: InputDecoration(
-                        hintText: "from",
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 1),
-                            borderRadius: BorderRadius.circular(10))),
-                  ),
-                ),
-                Container(
-                  child: TextField(
-                    decoration: InputDecoration(
-                        hintText: "to",
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 1),
-                            borderRadius: BorderRadius.circular(10))),
-                  ),
-                ),
-                Row(
-                  children: [
-                    ElevatedButton(
-                      child: Text('Search'),
-                      onPressed: () async {
-                        await getCurrentPosition();
-                      },
-                    ),
-                    ElevatedButton(
-                      child: Text('My location'),
-                      onPressed: () async {
-                        await getCurrentPosition();
-                      },
-                    ),
-                  ],
-                ),
-                Text(country)
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Column(
+                      children: [
+                        Container(
+                          child: TextField(
+                            decoration: InputDecoration(
+                                hintText: "current location",
+                                border: OutlineInputBorder(
+                                    borderSide: BorderSide(width: 1),
+                                    borderRadius: BorderRadius.circular(10))),
+                          ),
+                        ),
+                        Container(
+                          child: TextField(
+                            controller: _destinationLocationTextController,
+                            decoration: InputDecoration(
+                                hintText: "destination",
+                                border: OutlineInputBorder(
+                                    borderSide: BorderSide(width: 1),
+                                    borderRadius: BorderRadius.circular(10))),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            ElevatedButton(
+                              child: Text('Search'),
+                              onPressed: () async {
+                                await searchDestinationPosition();
+                              },
+                            ),
+                            ElevatedButton(
+                              child: Text('My location'),
+                              onPressed: () async {
+                                await getCurrentPosition();
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    )),
+                Text(country),
               ],
             ),
           ),
