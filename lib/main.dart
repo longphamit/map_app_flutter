@@ -45,6 +45,8 @@ class _MyHomePageState extends State<MyHomePage> {
   double des_latitude = 21.0277644;
   double des_long_latitude = 105.8341598;
 
+  String distance = "0";
+
   final MapTileLayerController _layerController = MapTileLayerController();
   late MapZoomPanBehavior _zoomPanBehavior;
   @override
@@ -75,6 +77,14 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         des_latitude = _destinationPosition.latitude;
         des_long_latitude = _destinationPosition.longitude;
+
+        distance = (Geolocator.distanceBetween(
+                    _currentPosition.latitude,
+                    _currentPosition.longitude,
+                    _destinationPosition.latitude,
+                    _destinationPosition.longitude) /
+                1000)
+            .toStringAsFixed(2);
       });
       _layerController.updateMarkers([1]);
     } catch (e) {
@@ -152,6 +162,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         borderRadius: BorderRadius.circular(10)),
                     child: Column(
                       children: [
+                        Container(
+                          child: Text(distance + " km"),
+                        ),
                         Container(
                           child: TextField(
                             decoration: InputDecoration(
