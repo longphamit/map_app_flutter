@@ -77,27 +77,29 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.all(8.0),
             child: Column(
               children: [
-                SfMaps(
-                  layers: [
-                    MapTileLayer(
-                      controller: _layerController,
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      initialZoomLevel: 2,
-                      initialFocalLatLng: MapLatLng(28.644800, 77.216721),
-                      initialMarkersCount: 0,
-                      zoomPanBehavior: _zoomPanBehavior,
-                      markerBuilder: (BuildContext context, int index) {
-                        return MapMarker(
-                          latitude: latitude,
-                          longitude: long_latitude,
-                          iconColor: Colors.white,
-                          iconStrokeColor: Colors.black,
-                          iconStrokeWidth: 2,
-                        );
-                      },
-                    ),
-                  ],
+                Expanded(
+                  child: SfMaps(
+                    layers: [
+                      MapTileLayer(
+                        controller: _layerController,
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        initialZoomLevel: 2,
+                        initialFocalLatLng: MapLatLng(28.644800, 77.216721),
+                        initialMarkersCount: 0,
+                        zoomPanBehavior: _zoomPanBehavior,
+                        markerBuilder: (BuildContext context, int index) {
+                          return MapMarker(
+                            latitude: latitude,
+                            longitude: long_latitude,
+                            iconColor: Colors.white,
+                            iconStrokeColor: Colors.black,
+                            iconStrokeWidth: 2,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 ElevatedButton(
                   child: Text('Add marker'),
