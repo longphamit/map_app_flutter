@@ -101,11 +101,39 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-                ElevatedButton(
-                  child: Text('Add marker'),
-                  onPressed: () async {
-                    await getCurrentPosition();
-                  },
+                Container(
+                  child: TextField(
+                    decoration: InputDecoration(
+                        hintText: "from",
+                        border: OutlineInputBorder(
+                            borderSide: BorderSide(width: 1),
+                            borderRadius: BorderRadius.circular(10))),
+                  ),
+                ),
+                Container(
+                  child: TextField(
+                    decoration: InputDecoration(
+                        hintText: "to",
+                        border: OutlineInputBorder(
+                            borderSide: BorderSide(width: 1),
+                            borderRadius: BorderRadius.circular(10))),
+                  ),
+                ),
+                Row(
+                  children: [
+                    ElevatedButton(
+                      child: Text('Search'),
+                      onPressed: () async {
+                        await getCurrentPosition();
+                      },
+                    ),
+                    ElevatedButton(
+                      child: Text('My location'),
+                      onPressed: () async {
+                        await getCurrentPosition();
+                      },
+                    ),
+                  ],
                 ),
                 Text(country)
               ],
