@@ -39,6 +39,9 @@ dependencies:
   syncfusion_flutter_maps: ^19.3.46-beta
   geolocator: ^6.1.0
   geocoding: ^1.0.5
+  osm_nominatim: ^2.0.1
+  flutter_typeahead: ^2.0.0
+  flutter_keyboard_visibility_web: ^1.0.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

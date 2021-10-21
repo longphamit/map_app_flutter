@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:geolocator/geolocator.dart';
 import "package:latlong2/latlong.dart" as latLng;
+import 'package:osm_nominatim/osm_nominatim.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 import 'package:geocoding/geocoding.dart';
 
@@ -37,6 +39,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   TextEditingController _destinationLocationTextController =
       TextEditingController();
+  List<String> _localOptions = <String>[];
   String country = "123";
   late Position _currentPosition, _destinationPosition;
   double latitude = 21.0277644;
@@ -59,6 +62,17 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _layerController.dispose();
     super.dispose();
+  }
+
+  searchNomitim(String query) async {
+    final searchResult = await Nominatim.searchByName(
+      query: query,
+      limit: 1,
+      addressDetails: true,
+      extraTags: true,
+      nameDetails: true,
+    );
+    print(searchResult.single.nameDetails);
   }
 
   searchDestinationPosition() async {
@@ -86,6 +100,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 1000)
             .toStringAsFixed(2);
       });
+      _zoomPanBehavior.zoomLevel = 15;
+      _zoomPanBehavior.focalLatLng = MapLatLng(des_latitude, des_long_latitude);
       _layerController.updateMarkers([1]);
     } catch (e) {
       print("Khong tim thay");
@@ -178,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           child: TextField(
                             controller: _destinationLocationTextController,
                             decoration: InputDecoration(
-                                hintText: "destination",
+                                hintText: "destination location",
                                 border: OutlineInputBorder(
                                     borderSide: BorderSide(width: 1),
                                     borderRadius: BorderRadius.circular(10))),
@@ -189,6 +205,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             ElevatedButton(
                               child: Text('Search'),
                               onPressed: () async {
+                                await searchNomitim(
+                                    _destinationLocationTextController.text);
                                 await searchDestinationPosition();
                               },
                             ),
