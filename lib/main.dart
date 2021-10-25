@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
@@ -6,6 +9,7 @@ import "package:latlong2/latlong.dart" as latLng;
 import 'package:osm_nominatim/osm_nominatim.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const MyApp());
@@ -39,6 +43,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   TextEditingController _destinationLocationTextController =
       TextEditingController();
+  TextEditingController _currentLocationTextController =
+      TextEditingController();
   List<String> _localOptions = <String>[];
   String country = "123";
   late Position _currentPosition, _destinationPosition;
@@ -50,11 +56,28 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String distance = "0";
 
+  late List<MapLatLng> polyline;
+  late List<List<MapLatLng>> polylines;
+
   final MapTileLayerController _layerController = MapTileLayerController();
   late MapZoomPanBehavior _zoomPanBehavior;
   @override
   void initState() {
     _zoomPanBehavior = MapZoomPanBehavior();
+    polyline = <MapLatLng>[
+      MapLatLng(13.0827, 80.2707),
+      MapLatLng(13.1746, 79.6117),
+      MapLatLng(13.6373, 79.5037),
+      MapLatLng(14.4673, 78.8242),
+      MapLatLng(14.9091, 78.0092),
+      MapLatLng(16.2160, 77.3566),
+      MapLatLng(17.1557, 76.8697),
+      MapLatLng(18.0975, 75.4249),
+      MapLatLng(18.5204, 73.8567),
+      MapLatLng(19.0760, 72.8777),
+    ];
+
+    polylines = <List<MapLatLng>>[polyline];
     super.initState();
   }
 
@@ -72,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
       extraTags: true,
       nameDetails: true,
     );
-    print(searchResult.single.nameDetails);
+    print("SearchNomitim: ${searchResult.single.nameDetails}");
   }
 
   searchDestinationPosition() async {
@@ -100,7 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 1000)
             .toStringAsFixed(2);
       });
-      _zoomPanBehavior.zoomLevel = 15;
+      //_zoomPanBehavior.zoomLevel = 15;
       _zoomPanBehavior.focalLatLng = MapLatLng(des_latitude, des_long_latitude);
       _layerController.updateMarkers([1]);
     } catch (e) {
@@ -116,12 +139,13 @@ class _MyHomePageState extends State<MyHomePage> {
         desiredAccuracy: LocationAccuracy.high);
     List addresses = await placemarkFromCoordinates(
         _currentPosition.latitude, _currentPosition.longitude);
-    print(addresses[0].country);
+    _currentLocationTextController.text = (addresses[0] as Placemark).name;
     setState(() {
-      country = addresses[0].country;
+      country = (addresses[0] as Placemark).name;
       latitude = _currentPosition.latitude;
       long_latitude = _currentPosition.longitude;
     });
+
     _layerController.updateMarkers([0]);
   }
 
@@ -167,6 +191,27 @@ class _MyHomePageState extends State<MyHomePage> {
                             );
                           }
                         },
+                        markerTooltipBuilder: (context, index) {
+                          if (index == 1) {
+                            return Text(_destinationLocationTextController.text,
+                                style: TextStyle(color: Colors.white));
+                          } else {
+                            return Text(_currentLocationTextController.text,
+                                style: TextStyle(color: Colors.white));
+                          }
+                        },
+                        sublayers: [
+                          MapPolylineLayer(
+                            polylines: List<MapPolyline>.generate(
+                              polylines.length,
+                              (int index) {
+                                return MapPolyline(
+                                  points: polylines[index],
+                                );
+                              },
+                            ).toSet(),
+                          )
+                        ],
                       ),
                     ],
                   ),
@@ -183,6 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         Container(
                           child: TextField(
+                            controller: _currentLocationTextController,
                             decoration: InputDecoration(
                                 hintText: "current location",
                                 border: OutlineInputBorder(
@@ -201,19 +247,28 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            ElevatedButton(
-                              child: Text('Search'),
-                              onPressed: () async {
-                                await searchNomitim(
-                                    _destinationLocationTextController.text);
-                                await searchDestinationPosition();
-                              },
+                            Row(
+                              children: [
+                                ElevatedButton(
+                                  child: Text('Search'),
+                                  onPressed: () {
+                                    searchDestination();
+                                  },
+                                ),
+                                ElevatedButton(
+                                  child: Text('My location'),
+                                  onPressed: () {
+                                    getCurrentPosition();
+                                  },
+                                ),
+                              ],
                             ),
                             ElevatedButton(
-                              child: Text('My location'),
-                              onPressed: () async {
-                                await getCurrentPosition();
+                              child: Text('Get Direction'),
+                              onPressed: () {
+                                getDirection();
                               },
                             ),
                           ],
@@ -228,6 +283,57 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
+  Future<void> searchDestination() async {
+    await searchNomitim(_destinationLocationTextController.text);
+    await searchDestinationPosition();
+  }
+
+  Future<void> getDirection() async {
+    String originalUrl =
+        "https://api.openrouteservice.org/v2/directions/driving-car";
+    String token = "5b3ce3597851110001cf6248ca55d66f8a924baf9d3aed717e90360f";
+    String start = "8.681495,49.41461";
+    String end = "8.687872,49.420318";
+    Map<String, String> queryParams = {
+      "api_key": token,
+      "start": start,
+      "end": end
+    };
+    try {
+      var url = Uri.https(
+          "api.openrouteservice.org", "v2/directions/driving-car", queryParams);
+      var response = await http.get(url);
+      if (response.statusCode == 200) {
+        var body = response.body;
+        var data = jsonDecode(body);
+        var feature = (data as Map)["features"];
+        // print("Feature: ${data["feature"]}");
+        var coordinates = feature[0]["geometry"]["coordinates"];
+        List<MapLatLng> test_polyline = [];
+        (coordinates as List).forEach((coordinate) {
+          test_polyline.add(MapLatLng(coordinate[0], coordinate[1]));
+        });
+        setState(() {
+          polyline = test_polyline;
+          polylines = <List<MapLatLng>>[test_polyline];
+          latitude = 8.681495;
+          long_latitude = 49.41461;
+          des_latitude = 8.687872;
+          des_long_latitude = 49.420318;
+        });
+        _destinationLocationTextController.text = "";
+        _currentLocationTextController.text = "";
+        _zoomPanBehavior.focalLatLng = MapLatLng(8.681495, 49.41461);
+        _zoomPanBehavior.zoomLevel = 15;
+        _layerController.clearMarkers();
+        _layerController.insertMarker(0);
+        _layerController.insertMarker(1);
+      }
+    } catch (e) {
+      print(e.toString());
+    }
+  }
 }
 
 class Model {
@@ -236,4 +342,9 @@ class Model {
   final String country;
   final double latitude;
   final double longitude;
+}
+
+class PolylineModel {
+  PolylineModel(this.points);
+  final List<MapLatLng> points;
 }
