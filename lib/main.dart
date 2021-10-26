@@ -56,28 +56,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String distance = "0";
 
-  late List<MapLatLng> polyline;
-  late List<List<MapLatLng>> polylines;
+  late List<MapLatLng> polyline = <MapLatLng>[];
+  late List<List<MapLatLng>> polylines = <List<MapLatLng>>[polyline];
 
   final MapTileLayerController _layerController = MapTileLayerController();
   late MapZoomPanBehavior _zoomPanBehavior;
   @override
   void initState() {
     _zoomPanBehavior = MapZoomPanBehavior();
-    polyline = <MapLatLng>[
-      MapLatLng(13.0827, 80.2707),
-      MapLatLng(13.1746, 79.6117),
-      MapLatLng(13.6373, 79.5037),
-      MapLatLng(14.4673, 78.8242),
-      MapLatLng(14.9091, 78.0092),
-      MapLatLng(16.2160, 77.3566),
-      MapLatLng(17.1557, 76.8697),
-      MapLatLng(18.0975, 75.4249),
-      MapLatLng(18.5204, 73.8567),
-      MapLatLng(19.0760, 72.8777),
-    ];
-
-    polylines = <List<MapLatLng>>[polyline];
     super.initState();
   }
 
@@ -290,6 +276,38 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> getDirection() async {
+    Map<String, String> queryParams = {
+      "geometries": "geojson",
+    };
+    try {
+      var url = Uri.https(
+          "router.project-osrm.org",
+          "route/v1/driving" +
+              "/$long_latitude,$latitude" +
+              ";$des_long_latitude,$des_latitude",
+          queryParams);
+      var response = await http.get(url);
+      if (response.statusCode == 200) {
+        var body = response.body;
+        var data = jsonDecode(body);
+        var feature = (data as Map)["routes"];
+        // print("Feature: ${data["feature"]}");
+        var coordinates = feature[0]["geometry"]["coordinates"];
+        List<MapLatLng> test_polyline = [];
+        (coordinates as List).forEach((coordinate) {
+          test_polyline.add(MapLatLng(coordinate[1], coordinate[0]));
+        });
+        setState(() {
+          polyline = test_polyline;
+          polylines = <List<MapLatLng>>[test_polyline];
+        });
+      }
+    } catch (e) {
+      print(e.toString());
+    }
+  }
+
+  Future<void> getDirectionByThirdParty() async {
     String originalUrl =
         "https://api.openrouteservice.org/v2/directions/driving-car";
     String token = "5b3ce3597851110001cf6248ca55d66f8a924baf9d3aed717e90360f";
